@@ -620,6 +620,7 @@ class ComposerStaticInitc514d8f7b9fc5970bdd94287905ef584
         'App\\Exports\\StudentsExport' => __DIR__ . '/../..' . '/app/Exports/StudentsExport.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
         'App\\Http\\Controllers\\StudentController' => __DIR__ . '/../..' . '/app/Http/Controllers/StudentController.php',
+        'App\\Imports\\StudentsImport' => __DIR__ . '/../..' . '/app/Imports/StudentsImport.php',
         'App\\Models\\Student' => __DIR__ . '/../..' . '/app/Models/Student.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
