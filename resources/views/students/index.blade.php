@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Student Data</title>
+
+    <title>Student Data Management</title>
 
     <style>
         body {
@@ -11,16 +13,15 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: auto;
             background: #fff;
             padding: 25px;
             border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         h2 {
-            margin-bottom: 20px;
             color: #333;
         }
 
@@ -29,87 +30,54 @@
             color: #333;
         }
 
-        form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        input {
-            padding: 8px;
-            width: 30%;
+        input,
+        select {
+            padding: 9px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
 
-        button {
-            padding: 8px 14px;
-            background: #2563eb;
+        button,
+        .btn {
+            padding: 9px 14px;
             border: none;
+            border-radius: 4px;
             color: white;
-            border-radius: 4px;
             cursor: pointer;
-        }
-
-        button:hover {
-            background: #1e40af;
-        }
-
-        .actions {
-            margin-bottom: 20px;
-        }
-
-        .actions a {
             text-decoration: none;
-            padding: 8px 12px;
-            margin-right: 5px;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 14px;
+            display: inline-block;
         }
 
-        .csv {
+        .blue {
+            background: #2563eb;
+        }
+
+        .green {
             background: #16a34a;
         }
 
-        .pdf {
+        .red {
             background: #dc2626;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        .orange {
+            background: #ea580c;
         }
 
-        table th,
-        table td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
+        .gray {
+            background: #64748b;
         }
 
-        table th {
-            background: #f1f5f9;
+        .purple {
+            background: #7c3aed;
         }
 
-        table tr:nth-child(even) {
-            background: #f9fafb;
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
         }
-
-        .delete-btn {
-            background: #dc2626;
-            padding: 6px 10px;
-            font-size: 13px;
-        }
-
-        .delete-btn:hover {
-            background: #991b1b;
-        }
-
-        /* =========================
-           STATISTICS
-        ========================= */
 
         .stats {
             display: grid;
@@ -128,261 +96,546 @@
         .stat-card h4 {
             margin: 0 0 8px;
             color: #64748b;
-            font-size: 14px;
         }
 
         .stat-card p {
             margin: 0;
             font-size: 25px;
             font-weight: bold;
-            color: #1e293b;
         }
 
-        /* =========================
-           STATUS
-        ========================= */
-
-        .status {
-            padding: 5px 9px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
         }
 
-        .completed {
-            background: #dcfce7;
-            color: #166534;
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
         }
 
-        .completed-with-errors {
-            background: #fef3c7;
-            color: #92400e;
+        th {
+            background: #f1f5f9;
+        }
+
+        tr:nth-child(even) {
+            background: #f9fafb;
         }
 
         .success-message {
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 15px;
             background: #dcfce7;
             color: #166534;
             border-radius: 5px;
         }
 
+        .pagination {
+            margin-top: 20px;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 7px 11px;
+            margin-right: 4px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .selected {
+            background: #2563eb;
+            color: white;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .action-form {
+            display: inline;
+        }
+
+        .small-btn {
+            padding: 6px 9px;
+            font-size: 12px;
+        }
+
         @media(max-width: 800px) {
+
             .stats {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            table {
+                font-size: 13px;
             }
         }
 
         @media(max-width: 500px) {
+
             .stats {
                 grid-template-columns: 1fr;
             }
 
-            form {
-                flex-direction: column;
-            }
-
-            input {
-                width: 100%;
+            .container {
+                padding: 15px;
             }
         }
     </style>
+
 </head>
 
 <body>
 
-<div class="container">
+    <div class="container">
 
-    <h2>🎓 Student Data</h2>
+        <h2>🎓 Student Data Management</h2>
 
-    {{-- Success message --}}
-    @if(session('success'))
+
+        {{-- ================================================= --}}
+        {{-- SUCCESS MESSAGE --}}
+        {{-- ================================================= --}}
+
+        @if(session('success'))
+
         <div class="success-message">
+
             {{ session('success') }}
-        </div>
-    @endif
 
-    {{-- =========================
-         STUDENT FORM
-    ========================== --}}
-
-    <form method="POST" action="{{ route('students.store') }}">
-        @csrf
-
-        <input
-            name="name"
-            placeholder="Name"
-            required
-        >
-
-        <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            required
-        >
-
-        <button type="submit">
-            Add Student
-        </button>
-    </form>
-
-    {{-- =========================
-         EXPORT
-    ========================== --}}
-
-    <div class="actions">
-
-        <a
-            href="{{ route('students.csv') }}"
-            class="csv"
-        >
-            ⬇ Export CSV
-        </a>
-
-        <a
-            href="{{ route('students.pdf') }}"
-            class="pdf"
-        >
-            📄 Export PDF
-        </a>
-
-    </div>
-
-    {{-- =========================
-         IMPORT STATISTICS
-    ========================== --}}
-
-    @php
-
-        $totalImports = $importHistories->count();
-
-        $totalImported = $importHistories->sum(
-            'imported_rows'
-        );
-
-        $totalDuplicates = $importHistories->sum(
-            'duplicate_rows'
-        );
-
-        $totalFailed = $importHistories->sum(
-            'failed_rows'
-        );
-
-    @endphp
-
-    <div class="stats">
-
-        <div class="stat-card">
-            <h4>Total Imports</h4>
-            <p>{{ $totalImports }}</p>
         </div>
 
-        <div class="stat-card">
-            <h4>Imported Students</h4>
-            <p>{{ $totalImported }}</p>
+        @endif
+
+
+        {{-- ================================================= --}}
+        {{-- ADD STUDENT --}}
+        {{-- ================================================= --}}
+
+        <form
+            method="POST"
+            action="{{ route('students.store') }}"
+            class="filters">
+
+            @csrf
+
+            <input
+                name="name"
+                placeholder="Student Name"
+                required>
+
+            <input
+                name="email"
+                type="email"
+                placeholder="Student Email"
+                required>
+
+            <button
+                type="submit"
+                class="blue">
+                ➕ Add Student
+            </button>
+
+        </form>
+
+
+        {{-- ================================================= --}}
+        {{-- FILTERS --}}
+        {{-- ================================================= --}}
+
+        <form
+            method="GET"
+            action="{{ route('students.index') }}"
+            class="filters">
+
+            <input
+                type="text"
+                name="search"
+                value="{{ $search }}"
+                placeholder="🔎 Search name/email">
+
+            <input
+                type="date"
+                name="from_date"
+                value="{{ $fromDate }}">
+
+            <input
+                type="date"
+                name="to_date"
+                value="{{ $toDate }}">
+
+            <select name="sort_by">
+
+                <option
+                    value="id"
+                    {{ $sortBy === 'id' ? 'selected' : '' }}>
+                    ID
+                </option>
+
+                <option
+                    value="name"
+                    {{ $sortBy === 'name' ? 'selected' : '' }}>
+                    Name
+                </option>
+
+                <option
+                    value="email"
+                    {{ $sortBy === 'email' ? 'selected' : '' }}>
+                    Email
+                </option>
+
+                <option
+                    value="created_at"
+                    {{ $sortBy === 'created_at' ? 'selected' : '' }}>
+                    Created Date
+                </option>
+
+            </select>
+
+
+            <select name="sort_order">
+
+                <option
+                    value="asc"
+                    {{ $sortOrder === 'asc' ? 'selected' : '' }}>
+                    ASC
+                </option>
+
+                <option
+                    value="desc"
+                    {{ $sortOrder === 'desc' ? 'selected' : '' }}>
+                    DESC
+                </option>
+
+            </select>
+
+
+            <button
+                type="submit"
+                class="blue">
+                🔎 Apply
+            </button>
+
+
+            <a
+                href="{{ route('students.index') }}"
+                class="gray btn">
+                Reset
+            </a>
+
+        </form>
+
+
+        {{-- ================================================= --}}
+        {{-- VIEW BUTTONS --}}
+        {{-- ================================================= --}}
+
+        <div class="top-actions">
+
+            <a
+                href="{{ route('students.index') }}"
+                class="green btn">
+                👨‍🎓 Active Students
+            </a>
+
+
+            <a
+                href="{{ route('students.index', ['view' => 'trash']) }}"
+                class="red btn">
+                🗑️ Trash ({{ $totalTrash }})
+            </a>
+
+
+            <a
+                href="{{ route('students.csv', request()->query()) }}"
+                class="green btn">
+                ⬇ Export CSV
+            </a>
+
+
+            <a
+                href="{{ route('students.pdf') }}"
+                class="red btn">
+                📄 Export PDF
+            </a>
+
         </div>
 
-        <div class="stat-card">
-            <h4>Duplicate Rows</h4>
-            <p>{{ $totalDuplicates }}</p>
+
+        {{-- ================================================= --}}
+        {{-- STATISTICS --}}
+        {{-- ================================================= --}}
+
+        <div class="stats">
+
+            <div class="stat-card">
+
+                <h4>Total Students</h4>
+
+                <p>
+                    {{ $totalStudents }}
+                </p>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <h4>Trash</h4>
+
+                <p>
+                    {{ $totalTrash }}
+                </p>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <h4>Added Today</h4>
+
+                <p>
+                    {{ $todayStudents }}
+                </p>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <h4>This Week</h4>
+
+                <p>
+                    {{ $thisWeekStudents }}
+                </p>
+
+            </div>
+
         </div>
 
-        <div class="stat-card">
-            <h4>Failed Rows</h4>
-            <p>{{ $totalFailed }}</p>
+
+        {{-- ================================================= --}}
+        {{-- STUDENT TABLE --}}
+        {{-- ================================================= --}}
+
+        <h3>
+
+            @if($view === 'trash')
+
+            🗑️ Trash Students
+
+            @else
+
+            👨‍🎓 Students
+
+            @endif
+
+        </h3>
+
+
+        @if($view !== 'trash')
+
+        <form
+            method="POST"
+            action="{{ route('students.bulk-delete') }}"
+            id="bulkDeleteForm">
+
+            @csrf
+
+            @endif
+
+
+            <table>
+
+                <tr>
+
+                    @if($view !== 'trash')
+                    <th>
+                        <input
+                            type="checkbox"
+                            id="selectAll">
+                    </th>
+                    @endif
+
+                    <th>ID</th>
+
+                    <th>Name</th>
+
+                    <th>Email</th>
+
+                    <th>Created At</th>
+
+                    <th>Action</th>
+
+                </tr>
+
+
+                @forelse($students as $s)
+
+                <tr>
+
+                    @if($view !== 'trash')
+
+                    <td>
+
+                        <input
+                            type="checkbox"
+                            name="student_ids[]"
+                            value="{{ $s->id }}"
+                            class="student-checkbox">
+
+                    </td>
+
+                    @endif
+
+
+                    <td>
+                        {{ $s->id }}
+                    </td>
+
+
+                    <td>
+                        {{ $s->name }}
+                    </td>
+
+
+                    <td>
+                        {{ $s->email }}
+                    </td>
+
+
+                    <td>
+                        {{ $s->created_at->format('d M Y, h:i A') }}
+                    </td>
+
+
+                    <td>
+
+                        @if($view === 'trash')
+
+                        <form
+                            method="POST"
+                            action="{{ route('students.restore', $s->id) }}"
+                            class="action-form">
+
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="green small-btn">
+                                ♻ Restore
+                            </button>
+
+                        </form>
+
+                        @else
+
+                        <form
+                            method="POST"
+                            action="{{ route('students.delete', $s->id) }}"
+                            class="action-form">
+
+                            @csrf
+
+                            @method('DELETE')
+
+                            <button
+                                type="submit"
+                                class="red small-btn"
+                                onclick="return confirm('Move this student to trash?')">
+                                🗑 Delete
+                            </button>
+
+                        </form>
+
+                        @endif
+
+                    </td>
+
+                </tr>
+
+                @empty
+
+                <tr>
+
+                    <td
+                        colspan="{{ $view === 'trash' ? 5 : 6 }}">
+                        No students found.
+                    </td>
+
+                </tr>
+
+                @endforelse
+
+            </table>
+
+
+            @if($view !== 'trash')
+
+            <br>
+
+            <button
+                type="submit"
+                class="red"
+                onclick="return confirm('Move selected students to trash?')">
+                🗑️ Bulk Delete Selected
+            </button>
+
+        </form>
+
+        @endif
+
+
+        {{-- ================================================= --}}
+        {{-- PAGINATION --}}
+        {{-- ================================================= --}}
+
+        <div class="pagination">
+
+            {{ $students->links() }}
+
         </div>
 
-    </div>
 
-    {{-- =========================
-         STUDENTS TABLE
-    ========================== --}}
+        {{-- ================================================= --}}
+        {{-- IMPORT HISTORY --}}
+        {{-- ================================================= --}}
 
-    <h3>👨‍🎓 Students</h3>
+        <h3>📜 CSV Import History</h3>
 
-    <table>
 
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Action</th>
-        </tr>
-
-        @forelse($students as $s)
+        <table>
 
             <tr>
 
-                <td>
-                    {{ $s->id }}
-                </td>
+                <th>ID</th>
 
-                <td>
-                    {{ $s->name }}
-                </td>
+                <th>File Name</th>
 
-                <td>
-                    {{ $s->email }}
-                </td>
+                <th>Total</th>
 
-                <td>
+                <th>Imported</th>
 
-                    <form
-                        method="POST"
-                        action="{{ route('students.delete', $s->id) }}"
-                    >
+                <th>Duplicates</th>
 
-                        @csrf
+                <th>Failed</th>
 
-                        @method('DELETE')
+                <th>Status</th>
 
-                        <button
-                            type="submit"
-                            class="delete-btn"
-                            onclick="return confirm('Delete this student?')"
-                        >
-                            Delete
-                        </button>
+                <th>Date</th>
 
-                    </form>
-
-                </td>
+                <th>Details</th>
 
             </tr>
 
-        @empty
 
-            <tr>
-                <td colspan="4">
-                    No students found.
-                </td>
-            </tr>
-
-        @endforelse
-
-    </table>
-
-    {{-- =========================
-         IMPORT HISTORY
-    ========================== --}}
-
-    <h3>📜 CSV Import History</h3>
-
-    <table>
-
-        <tr>
-            <th>ID</th>
-            <th>File Name</th>
-            <th>Total Rows</th>
-            <th>Imported</th>
-            <th>Duplicates</th>
-            <th>Failed</th>
-            <th>Status</th>
-            <th>Date</th>
-        </tr>
-
-        @forelse($importHistories as $history)
+            @forelse($importHistories as $history)
 
             <tr>
 
@@ -411,44 +664,72 @@
                 </td>
 
                 <td>
-
-                    @if($history->status === 'completed')
-
-                        <span class="status completed">
-                            Completed
-                        </span>
-
-                    @else
-
-                        <span class="status completed-with-errors">
-                            Completed With Issues
-                        </span>
-
-                    @endif
-
+                    {{ $history->status }}
                 </td>
 
                 <td>
                     {{ $history->created_at->format('d M Y, h:i A') }}
                 </td>
 
-            </tr>
+                <td>
 
-        @empty
+                    <a
+                        href="/api/students/import-history/{{ $history->id }}"
+                        target="_blank"
+                        class="purple btn small-btn">
+                        👁 View
+                    </a>
 
-            <tr>
-
-                <td colspan="8">
-                    No CSV import history available.
                 </td>
 
             </tr>
 
-        @endforelse
+            @empty
 
-    </table>
+            <tr>
 
-</div>
+                <td colspan="9">
+                    No import history available.
+                </td>
+
+            </tr>
+
+            @endforelse
+
+        </table>
+
+    </div>
+
+
+    <script>
+        // ================================================
+        // SELECT ALL
+        // ================================================
+
+        const selectAll =
+            document.getElementById('selectAll');
+
+        if (selectAll) {
+
+            selectAll.addEventListener(
+                'change',
+                function() {
+
+                    document
+                        .querySelectorAll('.student-checkbox')
+                        .forEach(function(checkbox) {
+
+                            checkbox.checked =
+                                selectAll.checked;
+
+                        });
+
+                }
+            );
+
+        }
+    </script>
 
 </body>
+
 </html>

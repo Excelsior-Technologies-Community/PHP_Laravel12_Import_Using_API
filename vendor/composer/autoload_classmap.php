@@ -10,6 +10,7 @@ return array(
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
     'App\\Http\\Controllers\\StudentController' => $baseDir . '/app/Http/Controllers/StudentController.php',
     'App\\Imports\\StudentsImport' => $baseDir . '/app/Imports/StudentsImport.php',
+    'App\\Models\\ImportHistory' => $baseDir . '/app/Models/ImportHistory.php',
     'App\\Models\\Student' => $baseDir . '/app/Models/Student.php',
     'App\\Models\\User' => $baseDir . '/app/Models/User.php',
     'App\\Providers\\AppServiceProvider' => $baseDir . '/app/Providers/AppServiceProvider.php',
