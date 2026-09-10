@@ -12,37 +12,205 @@ use App\Imports\StudentsImport;
 
 class StudentController extends Controller
 {
-    // =========================
-    // WEB CRUD
-    // =========================
+    // =========================================================
+    // STUDENT LIST
+    // SEARCH + SORT + PAGINATION + DATE FILTER + TRASH
+    // =========================================================
 
-    /**
-     * Show students list.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $students = Student::orderBy('id', 'asc')->get();
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
 
-        $importHistories = ImportHistory::latest()->get();
+        $search = $request->input('search');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sorting
+        |--------------------------------------------------------------------------
+        */
+
+        $sortBy = $request->input('sort_by', 'id');
+
+        $sortOrder = $request->input('sort_order', 'asc');
+
+        $allowedSortColumns = [
+            'id',
+            'name',
+            'email',
+            'created_at',
+        ];
+
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'id';
+        }
+
+        if (!in_array($sortOrder, ['asc', 'desc'])) {
+            $sortOrder = 'asc';
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Date Filter
+        |--------------------------------------------------------------------------
+        */
+
+        $fromDate = $request->input('from_date');
+
+        $toDate = $request->input('to_date');
+
+        /*
+        |--------------------------------------------------------------------------
+        | View Mode
+        |--------------------------------------------------------------------------
+        */
+
+        $view = $request->input('view', 'active');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Query
+        |--------------------------------------------------------------------------
+        */
+
+        $query = Student::query();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trash
+        |--------------------------------------------------------------------------
+        */
+
+        if ($view === 'trash') {
+            $query->onlyTrashed();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | From Date
+        |--------------------------------------------------------------------------
+        */
+
+        if ($fromDate) {
+            $query->whereDate('created_at', '>=', $fromDate);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | To Date
+        |--------------------------------------------------------------------------
+        */
+
+        if ($toDate) {
+            $query->whereDate('created_at', '<=', $toDate);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sorting
+        |--------------------------------------------------------------------------
+        */
+
+        $students = $query
+            ->orderBy($sortBy, $sortOrder)
+            ->paginate(10)
+            ->withQueryString();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Import History
+        |--------------------------------------------------------------------------
+        */
+
+        $importHistories = ImportHistory::oldest()->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
+
+        $totalStudents = Student::count();
+
+        $totalTrash = Student::onlyTrashed()->count();
+
+        $todayStudents = Student::whereDate(
+            'created_at',
+            today()
+        )->count();
+
+        $thisWeekStudents = Student::whereBetween(
+            'created_at',
+            [
+                now()->startOfWeek(),
+                now()->endOfWeek(),
+            ]
+        )->count();
 
         return view(
             'students.index',
-            compact('students', 'importHistories')
+            compact(
+                'students',
+                'importHistories',
+                'search',
+                'sortBy',
+                'sortOrder',
+                'fromDate',
+                'toDate',
+                'view',
+                'totalStudents',
+                'totalTrash',
+                'todayStudents',
+                'thisWeekStudents'
+            )
         );
     }
 
-    /**
-     * Store new student.
-     */
+
+    // =========================================================
+    // STORE STUDENT
+    // =========================================================
+
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:students,email',
+            ],
         ]);
 
         Student::create(
-            $request->only('name', 'email')
+            $request->only(
+                'name',
+                'email'
+            )
         );
 
         return back()->with(
@@ -51,64 +219,114 @@ class StudentController extends Controller
         );
     }
 
-    /**
-     * Delete student.
-     */
+
+    // =========================================================
+    // SOFT DELETE
+    // =========================================================
+
     public function destroy($id)
     {
-        Student::findOrFail($id)->delete();
+        $student = Student::findOrFail($id);
+
+        $student->delete();
 
         return back()->with(
             'success',
-            'Student deleted successfully.'
+            'Student moved to trash successfully.'
         );
     }
 
-    // =========================
-    // EXPORT
-    // =========================
 
-    /**
-     * Export students as CSV.
-     */
-    public function exportCSV()
+    // =========================================================
+    // RESTORE STUDENT
+    // =========================================================
+
+    public function restore($id)
+    {
+        $student = Student::onlyTrashed()
+            ->findOrFail($id);
+
+        $student->restore();
+
+        return back()->with(
+            'success',
+            'Student restored successfully.'
+        );
+    }
+
+
+    // =========================================================
+    // BULK DELETE
+    // =========================================================
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'student_ids' => [
+                'required',
+                'array',
+            ],
+
+            'student_ids.*' => [
+                'integer',
+                'exists:students,id',
+            ],
+        ]);
+
+        Student::whereIn(
+            'id',
+            $request->student_ids
+        )->delete();
+
+        return back()->with(
+            'success',
+            count($request->student_ids)
+            . ' student(s) moved to trash.'
+        );
+    }
+
+
+    // =========================================================
+    // EXPORT CSV
+    // =========================================================
+
+    public function exportCSV(Request $request)
     {
         return Excel::download(
-            new StudentsExport,
+            new StudentsExport($request),
             'students.csv'
         );
     }
 
-    /**
-     * Export students as PDF.
-     */
+
+    // =========================================================
+    // EXPORT PDF
+    // =========================================================
+
     public function exportPDF()
     {
-        $students = Student::orderBy('id', 'asc')->get();
+        $students = Student::orderBy(
+            'id',
+            'asc'
+        )->get();
 
         $pdf = Pdf::loadView(
             'students.pdf',
             compact('students')
         );
 
-        return $pdf->download('students.pdf');
+        return $pdf->download(
+            'students.pdf'
+        );
     }
 
-    // =========================
-    // IMPORT API
-    // =========================
 
-    /**
-     * Import students from CSV.
-     */
+    // =========================================================
+    // IMPORT CSV
+    // =========================================================
+
     public function importCSV(Request $request)
     {
-        /*
-         * ==========================================
-         * FILE VALIDATION
-         * ==========================================
-         */
-
         $request->validate([
             'file' => [
                 'required',
@@ -118,109 +336,118 @@ class StudentController extends Controller
             ],
         ]);
 
-        /*
-         * ==========================================
-         * CREATE IMPORT OBJECT
-         * ==========================================
-         */
-
         $import = new StudentsImport();
-
-        /*
-         * ==========================================
-         * IMPORT CSV
-         * ==========================================
-         */
 
         Excel::import(
             $import,
             $request->file('file')
         );
 
-        /*
-         * ==========================================
-         * GET IMPORT SUMMARY
-         * ==========================================
-         */
-
         $summary = $import->getSummary();
 
-        /*
-         * ==========================================
-         * DETERMINE STATUS
-         * ==========================================
-         */
-
-        if ($summary['failed'] > 0 || $summary['duplicates'] > 0) {
+        if (
+            $summary['failed'] > 0 ||
+            $summary['duplicates'] > 0
+        ) {
             $status = 'completed_with_errors';
         } else {
             $status = 'completed';
         }
 
-        /*
-         * ==========================================
-         * SAVE IMPORT HISTORY
-         * ==========================================
-         */
-
         $history = ImportHistory::create([
-            'file_name' => $request->file('file')->getClientOriginalName(),
+            'file_name' =>
+                $request
+                    ->file('file')
+                    ->getClientOriginalName(),
 
-            'total_rows' => $summary['total_rows'],
+            'total_rows' =>
+                $summary['total_rows'],
 
-            'imported_rows' => $summary['imported'],
+            'imported_rows' =>
+                $summary['imported'],
 
-            'duplicate_rows' => $summary['duplicates'],
+            'duplicate_rows' =>
+                $summary['duplicates'],
 
-            'failed_rows' => $summary['failed'],
+            'failed_rows' =>
+                $summary['failed'],
 
-            'status' => $status,
+            'status' =>
+                $status,
 
-            'error_details' => $summary['errors'],
+            'error_details' =>
+                $summary['errors'],
         ]);
-
-        /*
-         * ==========================================
-         * API RESPONSE
-         * ==========================================
-         */
 
         return response()->json([
             'status' => true,
 
-            'message' => $summary['failed'] > 0 ||
-                         $summary['duplicates'] > 0
-                ? 'CSV import completed with some issues.'
-                : 'CSV imported successfully.',
+            'message' =>
+                $summary['failed'] > 0 ||
+                $summary['duplicates'] > 0
+                    ? 'CSV import completed with some issues.'
+                    : 'CSV imported successfully.',
 
-            'import_history_id' => $history->id,
+            'import_history_id' =>
+                $history->id,
 
             'summary' => [
-                'total_rows' => $summary['total_rows'],
-                'imported' => $summary['imported'],
-                'duplicates' => $summary['duplicates'],
-                'failed' => $summary['failed'],
+                'total_rows' =>
+                    $summary['total_rows'],
+
+                'imported' =>
+                    $summary['imported'],
+
+                'duplicates' =>
+                    $summary['duplicates'],
+
+                'failed' =>
+                    $summary['failed'],
             ],
 
-            'errors' => $summary['errors'],
+            'errors' =>
+                $summary['errors'],
         ]);
     }
 
-    // =========================
-    // IMPORT HISTORY API
-    // =========================
 
-    /**
-     * Get import history.
-     */
+    // =========================================================
+    // IMPORT HISTORY API
+    // =========================================================
+
     public function importHistory()
     {
-        $histories = ImportHistory::latest()->get();
+        $histories =
+            ImportHistory::oldest()->get();
 
         return response()->json([
             'status' => true,
-            'message' => 'Import history fetched successfully.',
-            'data' => $histories,
+
+            'message' =>
+                'Import history fetched successfully.',
+
+            'data' =>
+                $histories,
+        ]);
+    }
+
+
+    // =========================================================
+    // IMPORT HISTORY DETAILS
+    // =========================================================
+
+    public function importHistoryDetails($id)
+    {
+        $history =
+            ImportHistory::findOrFail($id);
+
+        return response()->json([
+            'status' => true,
+
+            'message' =>
+                'Import history details fetched successfully.',
+
+            'data' => $history,
         ]);
     }
 }
