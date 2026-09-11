@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\ImportHistory;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\StudentsExport;
@@ -191,32 +192,104 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        $student = Student::create($this->validatedStudentData($request));
 
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                'unique:students,email',
-            ],
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Student added successfully.',
+                'student' => $student,
+            ]);
+        }
+
+        return back()->with('success', 'Student added successfully.');
+    }
+
+    public function create()
+    {
+        return view('students.create');
+    }
+
+    public function show($id)
+    {
+        $student = Student::findOrFail($id);
+
+        return view('students.show', compact('student'));
+    }
+
+    public function edit($id)
+    {
+        $student = Student::findOrFail($id);
+
+        return view('students.edit', compact('student'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $student = Student::findOrFail($id);
+        $student->update($this->validatedStudentData($request, $student));
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Student updated successfully.',
+                'student' => $student->fresh(),
+            ]);
+        }
+
+        return redirect()->route('students.show', $student)
+            ->with('success', 'Student updated successfully.');
+    }
+
+    public function searchSuggestions(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+
+        if ($search === '') {
+            return response()->json([]);
+        }
+
+        $students = Student::query()
+            ->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'email']);
+
+        return response()->json($students);
+    }
+
+    private function validatedStudentData(Request $request, ?Student $student = null): array
+    {
+        $emailRule = Rule::unique('students', 'email');
+
+        if ($student) {
+            $emailRule->ignore($student->id);
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', $emailRule],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
+            'date_of_birth' => ['nullable', 'date'],
+            'course' => ['nullable', 'string', 'max:255'],
+            'class_name' => ['nullable', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', Rule::in(['Active', 'Inactive', 'Graduated'])],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
-        Student::create(
-            $request->only(
-                'name',
-                'email'
-            )
-        );
+        if ($request->hasFile('profile_photo')) {
+            $data['profile_photo'] = $request->file('profile_photo')->store('students', 'public');
+        } else {
+            unset($data['profile_photo']);
+        }
 
-        return back()->with(
-            'success',
-            'Student added successfully.'
-        );
+        return $data;
     }
 
 
@@ -224,16 +297,21 @@ class StudentController extends Controller
     // SOFT DELETE
     // =========================================================
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $student = Student::findOrFail($id);
 
         $student->delete();
 
-        return back()->with(
-            'success',
-            'Student moved to trash successfully.'
-        );
+        return $this->actionResponse($request, 'Student moved to trash successfully.');
+    }
+
+    public function forceDestroy($id)
+    {
+        $student = Student::onlyTrashed()->findOrFail($id);
+        $student->forceDelete();
+
+        return $this->actionResponse(request(), 'Student permanently deleted.');
     }
 
 
@@ -241,17 +319,14 @@ class StudentController extends Controller
     // RESTORE STUDENT
     // =========================================================
 
-    public function restore($id)
+    public function restore(Request $request, $id)
     {
         $student = Student::onlyTrashed()
             ->findOrFail($id);
 
         $student->restore();
 
-        return back()->with(
-            'success',
-            'Student restored successfully.'
-        );
+        return $this->actionResponse($request, 'Student restored successfully.');
     }
 
 
@@ -278,11 +353,46 @@ class StudentController extends Controller
             $request->student_ids
         )->delete();
 
-        return back()->with(
-            'success',
-            count($request->student_ids)
-            . ' student(s) moved to trash.'
+        return $this->actionResponse(
+            $request,
+            count($request->student_ids) . ' student(s) moved to trash.'
         );
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $ids = $this->validatedStudentIds($request);
+        $count = Student::onlyTrashed()->whereIn('id', $ids)->restore();
+
+        return $this->actionResponse($request, $count . ' student(s) restored.');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        $ids = $this->validatedStudentIds($request);
+        $count = Student::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+        return $this->actionResponse($request, $count . ' student(s) permanently deleted.');
+    }
+
+    private function validatedStudentIds(Request $request): array
+    {
+        return $request->validate([
+            'student_ids' => ['required', 'array'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
+        ])['student_ids'];
+    }
+
+    private function actionResponse(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
 

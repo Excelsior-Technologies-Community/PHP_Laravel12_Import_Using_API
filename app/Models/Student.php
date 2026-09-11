@@ -12,5 +12,18 @@ class Student extends Model
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'address',
+        'gender',
+        'date_of_birth',
+        'course',
+        'class_name',
+        'department',
+        'status',
+        'profile_photo',
+    ];
+
+    protected $casts = [
+        'date_of_birth' => 'date',
     ];
 }
