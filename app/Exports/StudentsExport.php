@@ -121,6 +121,14 @@ class StudentsExport implements FromCollection, WithHeadings
                 'id',
                 'name',
                 'email',
+                'phone',
+                'address',
+                'gender',
+                'date_of_birth',
+                'course',
+                'class_name',
+                'department',
+                'status',
                 'created_at'
             )
             ->orderBy(
@@ -140,6 +148,14 @@ class StudentsExport implements FromCollection, WithHeadings
             'ID',
             'Name',
             'Email',
+            'Phone',
+            'Address',
+            'Gender',
+            'Date of Birth',
+            'Course',
+            'Class',
+            'Department',
+            'Status',
             'Created At',
         ];
     }
