@@ -78,6 +78,9 @@ class StudentsImport implements ToCollection, WithHeadingRow
                         'email',
                         'max:255',
                     ],
+                    'gender' => ['nullable', 'in:Male,Female,Other'],
+                    'date_of_birth' => ['nullable', 'date'],
+                    'status' => ['nullable', 'in:Active,Inactive,Graduated'],
                 ]
             );
 
@@ -150,6 +153,14 @@ class StudentsImport implements ToCollection, WithHeadingRow
             Student::create([
                 'name' => $name,
                 'email' => $email,
+                'phone' => trim((string) ($row['phone'] ?? '')) ?: null,
+                'address' => trim((string) ($row['address'] ?? '')) ?: null,
+                'gender' => trim((string) ($row['gender'] ?? '')) ?: null,
+                'date_of_birth' => $row['date_of_birth'] ?? null,
+                'course' => trim((string) ($row['course'] ?? '')) ?: null,
+                'class_name' => trim((string) ($row['class'] ?? $row['class_name'] ?? '')) ?: null,
+                'department' => trim((string) ($row['department'] ?? '')) ?: null,
+                'status' => trim((string) ($row['status'] ?? 'Active')) ?: 'Active',
             ]);
 
             $this->importedRows++;
